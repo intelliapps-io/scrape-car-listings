@@ -10,6 +10,10 @@ let data: {
   listingUrl: string
 }[] = []
 
+let mileageSUM = 0;
+let priceSUM = 0;
+let listingCOUNT = 0;
+
 async function main() {
   const browser = await puppeteer.launch();
   const page = await browser.newPage();
@@ -29,8 +33,20 @@ async function main() {
       })
   }
 
+  data.forEach(item => {
+    if (item.mileage && item.price) { 
+      listingCOUNT++
+      mileageSUM += item.mileage
+      priceSUM += item.price
+    } 
+  })
+
   console.log(data)
-  console.log(`LISTING TOTAL: ${listings.length}`)
+  console.log(`LISTING COUNT: ${listingCOUNT}`)
+  console.log(`PRICE AVG: ${priceSUM/listingCOUNT}`)
+  console.log(`MILEAGE AVG: ${mileageSUM/listingCOUNT}`)
+
+  
 
   await browser.close()
 }
@@ -65,8 +81,10 @@ async function getPageListings(page: puppeteer.Page) {
     const id = await propertyHandle.jsonValue();
     if (typeof id === "string" && id.indexOf('listing') > -1) {
       listings.push(listChild)
-      await page.focus(`#${id}`)
-      await listChild.screenshot({ path: `screenshots/${id}.png`, type: "png" })
+
+      // Screenshot Listings
+      // await page.focus(`#${id}`)
+      // await listChild.screenshot({ path: `screenshots/${id}.png`, type: "png" })
     }
   }
 
