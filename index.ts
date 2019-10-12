@@ -1,5 +1,8 @@
 import puppeteer from 'puppeteer'
+import { AsyncParser, parse  } from 'json2csv'
 import { getInnerText, getMileage, getPrice } from './helpers';
+import { writeFileSync } from 'fs';
+import { join } from 'path';
 
 const url = `https://www.cargurus.com/Cars/inventorylisting/viewDetailsFilterViewInventoryListing.action?sourceContext=untrackedExternal_false_0&newSearchFromOverviewPage=true&inventorySearchWidgetType=AUTO&entitySelectingHelper.selectedEntity=c23830&entitySelectingHelper.selectedEntity2=c23830&zip=02019&distance=500&searchChanged=true&transmission=A&maxAccidents=0&hideFrameDamaged=true&hideSalvage=true&modelChanged=false&filtersModified=true`
 
@@ -45,8 +48,6 @@ async function main() {
   console.log(`LISTING COUNT: ${listingCOUNT}`)
   console.log(`PRICE AVG: ${priceSUM/listingCOUNT}`)
   console.log(`MILEAGE AVG: ${mileageSUM/listingCOUNT}`)
-
-  
 
   await browser.close()
 }
@@ -99,7 +100,18 @@ async function getPageListings(page: puppeteer.Page) {
 }
 
 main()
-  .then(() => console.log('done!'))
+  .then(() => {
+    const filteredResults = data.filter(listing => {
+      if (listing.mileage && listing.price)
+        return listing
+    })
+
+    const csv = parse(filteredResults, { fields: ['mileage', 'price', 'listingUrl'] })
+    
+    writeFileSync(join(__dirname, 'data.csv'), csv, { encoding: 'UTF8'})
+
+    console.log('done!')
+  })
   .catch((err) => {
     console.error(err)
     process.exit()
