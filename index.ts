@@ -1,10 +1,10 @@
 import puppeteer from 'puppeteer'
-import { AsyncParser, parse  } from 'json2csv'
+import { AsyncParser, parse } from 'json2csv'
 import { getInnerText, getMileage, getPrice } from './helpers';
 import { writeFileSync } from 'fs';
 import { join } from 'path';
 
-const url = `https://www.cargurus.com/Cars/inventorylisting/viewDetailsFilterViewInventoryListing.action?sourceContext=forSaleTab_false_0&newSearchFromOverviewPage=true&inventorySearchWidgetType=AUTO&entitySelectingHelper.selectedEntity=c26150&entitySelectingHelper.selectedEntity2=c26150&zip=02019&distance=75&searchChanged=true&maxAccidents=0&hideFrameDamaged=true&hideSalvage=true&hideTheft=true&hideFleet=true&modelChanged=false&filtersModified=true`
+const url = `https://www.cargurus.com/Cars/inventorylisting/viewDetailsFilterViewInventoryListing.action?sourceContext=untrackedExternal_false_0&newSearchFromOverviewPage=true&inventorySearchWidgetType=AUTO&entitySelectingHelper.selectedEntity=c23830&entitySelectingHelper.selectedEntity2=c23830&zip=02019&distance=500&searchChanged=true&transmission=A&maxAccidents=0&hideFrameDamaged=true&hideSalvage=true&modelChanged=false&filtersModified=true`
 
 let listings: puppeteer.ElementHandle<Element>[] = []
 let data: {
@@ -19,15 +19,17 @@ let listingCOUNT = 0;
 
 async function main() {
   const browser = await puppeteer.launch();
-  const page = await browser.newPage();
+  const context = await browser.createIncognitoBrowserContext();
+  const page = await context.newPage();
   await page.goto(url);
-  
+
   // get Listings
   await getPageListings(page)
 
   for (let i = 0; i < listings.length; i++) {
     const listing = listings[i]
     const result = await getListingData(page, listing).catch(err => console.log(err))
+    console.log(`${i} of ${listings.length}`)
     if (result)
       data.push({
         mileage: getMileage(result.dataText),
@@ -37,17 +39,17 @@ async function main() {
   }
 
   data.forEach(item => {
-    if (item.mileage && item.price) { 
+    if (item.mileage && item.price) {
       listingCOUNT++
       mileageSUM += item.mileage
       priceSUM += item.price
-    } 
+    }
   })
 
   console.log(data)
   console.log(`LISTING COUNT: ${listingCOUNT}`)
-  console.log(`PRICE AVG: ${priceSUM/listingCOUNT}`)
-  console.log(`MILEAGE AVG: ${mileageSUM/listingCOUNT}`)
+  console.log(`PRICE AVG: ${priceSUM / listingCOUNT}`)
+  console.log(`MILEAGE AVG: ${mileageSUM / listingCOUNT}`)
 
   await browser.close()
 }
@@ -93,6 +95,7 @@ async function getPageListings(page: puppeteer.Page) {
   const nextPageBtn = await page.$('.nextPageElement')
   if (nextPageBtn)
     try {
+      console.log("next page")
       await nextPageBtn.click()
       await page.waitFor(500)
       await getPageListings(page)
@@ -107,8 +110,8 @@ main()
     })
 
     const csv = parse(filteredResults, { fields: ['mileage', 'price', 'listingUrl'] })
-    
-    writeFileSync(join(__dirname, 'data.csv'), csv, { encoding: 'UTF8'})
+
+    writeFileSync(join(__dirname, 'data.csv'), csv, { encoding: 'UTF8' })
 
     console.log('done!')
   })
