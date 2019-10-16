@@ -4,7 +4,7 @@ import { getInnerText, getMileage, getPrice } from './helpers';
 import { writeFileSync } from 'fs';
 import { join } from 'path';
 
-const url = `https://www.cargurus.com/Cars/inventorylisting/viewDetailsFilterViewInventoryListing.action?sourceContext=untrackedExternal_false_0&newSearchFromOverviewPage=true&inventorySearchWidgetType=AUTO&entitySelectingHelper.selectedEntity=c23830&entitySelectingHelper.selectedEntity2=c23830&zip=02019&distance=500&searchChanged=true&transmission=A&maxAccidents=0&hideFrameDamaged=true&hideSalvage=true&modelChanged=false&filtersModified=true`
+const url = `https://www.cargurus.com/Cars/inventorylisting/viewDetailsFilterViewInventoryListing.action?sourceContext=forSaleTab_false_0&newSearchFromOverviewPage=true&inventorySearchWidgetType=AUTO&entitySelectingHelper.selectedEntity=c26150&entitySelectingHelper.selectedEntity2=c26150&zip=02019&distance=75&searchChanged=true&maxAccidents=0&hideFrameDamaged=true&hideSalvage=true&hideTheft=true&hideFleet=true&modelChanged=false&filtersModified=true`
 
 let listings: puppeteer.ElementHandle<Element>[] = []
 let data: {
