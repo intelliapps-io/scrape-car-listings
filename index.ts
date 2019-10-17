@@ -6,23 +6,23 @@ import { join } from 'path';
 
 const searchNational = `https://www.cargurus.com/Cars/inventorylisting/viewDetailsFilterViewInventoryListing.action?sourceContext=untrackedExternal_false_0&newSearchFromOverviewPage=true&inventorySearchWidgetType=AUTO&entitySelectingHelper.selectedEntity=c23830&entitySelectingHelper.selectedEntity2=c23830&zip=02019&distance=50000&searchChanged=true&transmission=A&maxAccidents=0&hideFrameDamaged=true&hideSalvage=true&modelChanged=false&filtersModified=true`
 const search500mi = `https://www.cargurus.com/Cars/inventorylisting/viewDetailsFilterViewInventoryListing.action?sourceContext=untrackedExternal_false_0&newSearchFromOverviewPage=true&inventorySearchWidgetType=AUTO&entitySelectingHelper.selectedEntity=c23830&entitySelectingHelper.selectedEntity2=c23830&zip=02019&distance=500&searchChanged=true&transmission=A&maxAccidents=0&hideFrameDamaged=true&hideSalvage=true&modelChanged=false&filtersModified=true`
-const url = search500mi
+const url = searchNational
 
 export interface IListingData {
-  mileage: number | null,
-  price: number | null,
-  imvPrice: number | null,
+  mileage: number,
+  price: number,
+  imvPrice: number,
   listingUrl: string
 }
 
-let listingsData: IListingData[] = []
+type Nullable<T> = {
+  [P in keyof T]: T[P] | null;
+};
 
-let mileageSUM = 0;
-let priceSUM = 0;
-let listingCOUNT = 0;
+let unfilteredListingsData: Nullable<IListingData>[] = []
 
 async function main() {
-  const browser = await puppeteer.launch({ headless: true, slowMo: 100 });
+  const browser = await puppeteer.launch({ headless: true });
   const context = await browser.createIncognitoBrowserContext();
   const page = await context.newPage();
   await page.goto(url);
@@ -30,24 +30,13 @@ async function main() {
   // get Listings
   await getPageListings(page)
 
-  listingsData.forEach(item => {
-    if (item.mileage && item.price) {
-      listingCOUNT++
-      mileageSUM += item.mileage
-      priceSUM += item.price
-    }
-  })
-
-  console.log(listingsData)
   console.log(`
-    LISTING COUNT: ${listingCOUNT}
-    PRICE AVG: ${priceSUM / listingCOUNT}
-    MILEAGE AVG: ${mileageSUM / listingCOUNT}`)
+    TOTAL LISTING COUNT: ${unfilteredListingsData.length}`)
 
   await browser.close()
 }
 
-async function getListingData(page: puppeteer.Page, element: puppeteer.ElementHandle<Element>): Promise<IListingData> {
+async function getListingData(page: puppeteer.Page, element: puppeteer.ElementHandle<Element>): Promise<Nullable<IListingData>> {
   // get listing data string
   const dataContainer = await element.$('.cg-dealFinder-result-stats')
   let dataContainerText: string | null = null
@@ -93,11 +82,11 @@ async function getPageListings(page: puppeteer.Page) {
       const listingData = await getListingData(page, listChild)
         .catch(err => { throw err })
       
-      console.log(`processing listing ${listingsData.length}`)
+      console.log(`processing listing ${unfilteredListingsData.length}`)
 
       // push listing data to array
       if (listingData)
-        listingsData.push(listingData)
+        unfilteredListingsData.push(listingData)
 
       // screenshot listings
       // await page.focus(`#${id}`)
@@ -118,12 +107,12 @@ async function getPageListings(page: puppeteer.Page) {
 
 main()
   .then(() => {
-    const filteredResults = listingsData.filter(listing => {
-      if (listing.mileage && listing.price)
+    const filteredResults = unfilteredListingsData.filter(listing => {
+      if (listing.mileage && listing.price && listing.imvPrice && listing.listingUrl)
         return listing
-    })
+    }) as IListingData[]
 
-    const csv = parse(filteredResults, { fields: ['mileage', 'price', 'listingUrl'] })
+    const csv = parse(filteredResults, { fields: ['mileage', 'price', 'imvPrice', 'listingUrl'] })
 
     writeFileSync(join(__dirname, 'data.csv'), csv, { encoding: 'UTF8' })
 
